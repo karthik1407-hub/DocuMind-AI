@@ -55,14 +55,15 @@ streamlit run app.py
 Open **`http://localhost:8501`** in your browser.
 
 - **Start chatting right away**: Say hello, ask questions, or explore capabilities.
-- **Attach a PDF**: Click the **paperclip** icon in the chat input bar, pick any PDF, and immediately ask questions about it.
-- **Sidebar tools**: Switch Gemini reasoning models, adjust passage retrieval depth, export chat logs, or clear history.
+- **Attach a PDF**: Use the attachment button in the chat bar, pick any PDF, and ask questions about it.
+- **Chat controls**: Adjust response creativity and document memory depth from the Settings dropdown inside the chat bar.
+- **Sidebar tools**: Export chat logs or clear history.
 
 ### Terminal REPL
 
 ```powershell
 python main.py path/to/document.pdf
-python main.py document.pdf --top-k 8 --model gemini-2.5-pro
+python main.py document.pdf --top-k 8 --model gemini-2.5-flash
 ```
 
 Slash commands available in the terminal:
@@ -108,9 +109,7 @@ Query ──► Vectorize ──► Cosine Top-K ──► Grounded Excerpts ─
 
 ## 🔧 Supported Models
 
-- `gemini-2.5-flash` *(Default — blazing fast, highly capable)*
-- `gemini-2.5-pro` *(Complex reasoning & deep synthesis)*
-- `gemini-2.0-flash`
+- `gemini-2.5-flash` *(Fast, highly capable, and used by the web UI)*
 
 ---
 

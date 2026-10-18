@@ -22,7 +22,7 @@ st.set_page_config(
     page_title="DocuMind AI · Conversational PDF Agent",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # ─── Visual Settings ────────────────────────────────────────────────────────────
@@ -43,12 +43,7 @@ EXAMPLE_QUESTIONS = [
     ("⚠️ Risks & Challenges", "What potential risks, limitations, or challenges are highlighted?"),
 ]
 
-MODELS = [
-    "gemini-2.5-flash",
-    "gemini-2.5-pro",
-    "gemini-2.0-flash",
-]
-
+CHAT_MODEL = "gemini-2.5-flash"
 
 import chat_history
 
@@ -89,14 +84,24 @@ def remove_chat(session_id: str) -> None:
         start_new_chat()
 
 
+def queue_chat_submission(file_key: str) -> None:
+    st.session_state.submitted_chat_text = st.session_state.get("chat_prompt", "").strip()
+    st.session_state.submitted_chat_file = st.session_state.get(file_key)
+    st.session_state.chat_prompt = ""
+    st.session_state.chat_submission_pending = True
+
+
 def get_api_key() -> str:
     key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if key:
         return key.strip()
 
     # Streamlit secrets check (for Streamlit Community Cloud)
-    if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
-        return str(st.secrets["GEMINI_API_KEY"]).strip()
+    try:
+        if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+            return str(st.secrets["GEMINI_API_KEY"]).strip()
+    except Exception:
+        pass
 
     for fname in [".env", ".env.local"]:
         p = Path(__file__).parent / fname
@@ -117,6 +122,13 @@ st.session_state.setdefault("pending",  None)
 st.session_state.setdefault("engine",   None)
 st.session_state.setdefault("doc_sig",  None)
 st.session_state.setdefault("uploaded_doc_name", None)
+st.session_state.setdefault("chat_bar_memory_depth", 5)
+st.session_state.setdefault("chat_bar_creativity", 0.2)
+st.session_state.setdefault("chat_upload_generation", 0)
+
+model = CHAT_MODEL
+top_k = st.session_state.chat_bar_memory_depth
+temperature = st.session_state.chat_bar_creativity
 
 load_css()
 api_key = get_api_key()
@@ -165,19 +177,6 @@ with st.sidebar:
     else:
         st.caption("No saved conversations yet.")
 
-    st.markdown('<div class="sidebar-sec-title">Agent Configuration</div>', unsafe_allow_html=True)
-    model = st.selectbox("Reasoning Engine", MODELS, index=0)
-    top_k = st.slider(
-        "Context Memory Depth (Passages)",
-        min_value=2, max_value=12, value=5,
-        help="Controls how many relevant document sections the agent references for each answer.",
-    )
-    temperature = st.slider(
-        "Agent Creativity",
-        min_value=0.0, max_value=1.0, value=0.2, step=0.05,
-        help="Lower values yield strictly factual responses directly from text.",
-    )
-
     st.markdown("---")
     if st.session_state.messages:
         transcript = "\n\n".join(
@@ -195,7 +194,7 @@ with st.sidebar:
     st.markdown(
         """
         <div style="text-align: center; font-size: 0.75rem; color: #475569; margin-top: 2rem;">
-            Powered by <b>Google Gemini 2.5</b><br>
+            Powered by <b>Google Gemini</b><br>
             Secure, Instant & Document-Grounded
         </div>
         """,
@@ -255,7 +254,7 @@ if not st.session_state.messages:
                 <div class="feature-card">
                     <div class="feature-icon">📎</div>
                     <div class="feature-title">Attach in Chat Box</div>
-                    <div class="feature-text">Click the paperclip in the bottom chat bar to attach any PDF directly with your message.</div>
+                    <div class="feature-text">Use the attachment button in the bottom chat bar to attach any PDF with your message.</div>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">📑</div>
@@ -308,24 +307,108 @@ if engine and engine.chunks and len(st.session_state.messages) <= 2:
         if col.button(f"{label}", key=f"starter_{i}", use_container_width=True):
             st.session_state.pending = question
 
-# ─── Conversational Chat Input with Integrated Attachment ─────────────────────
-# accept_file=True embeds the native paperclip upload button right inside the chat bar!
-chat_submission = st.chat_input(
-    "Ask a question, say hello, or attach a PDF with the paperclip...",
-    accept_file=True,
-    file_type=["pdf"],
+# ─── Chat Composer ────────────────────────────────────────────────────────────
+file_key = f"chat_pdf_{st.session_state.chat_upload_generation}"
+with st.container(key="chat_composer"):
+    with st.form("chat_composer_form", border=False):
+        attach_col, prompt_col, settings_col, send_col = st.columns(
+            [0.08, 0.68, 0.12, 0.12],
+            gap="small",
+            vertical_alignment="center",
+        )
+        with attach_col:
+            st.file_uploader(
+                "Attach a PDF",
+                type=["pdf"],
+                label_visibility="collapsed",
+                key=file_key,
+            )
+        with prompt_col:
+            st.text_input(
+                "Message",
+                placeholder="Ask DocuMind, say hello, or attach a PDF...",
+                label_visibility="collapsed",
+                key="chat_prompt",
+            )
+        with settings_col:
+            with st.popover("⚙️", help="Adjust response creativity and document memory depth."):
+                st.slider(
+                    "Memory depth",
+                    min_value=2,
+                    max_value=12,
+                    help="Number of document passages to retrieve for each answer.",
+                    key="chat_bar_memory_depth",
+                )
+                st.slider(
+                    "Creativity",
+                    min_value=0.0,
+                    max_value=1.0,
+                    step=0.05,
+                    help="Higher values make responses more creative; lower values keep them focused.",
+                    key="chat_bar_creativity",
+                )
+        with send_col:
+            st.form_submit_button(
+                "↑",
+                help="Send message",
+                use_container_width=True,
+                on_click=queue_chat_submission,
+                args=(file_key,),
+            )
+
+st.html(
+    """
+    <script>
+    (() => {
+        const main = document.querySelector('[data-testid="stMain"]');
+        if (!main) return;
+
+        window.docuMindScrollObserver?.disconnect();
+        let frame = 0;
+        const scrollToLatest = () => {
+            if (frame) cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+                frame = 0;
+                main.scrollTo({ top: main.scrollHeight, behavior: "smooth" });
+            });
+        };
+        const observer = new MutationObserver((records) => {
+            const hasMessageChange = records.some((record) => {
+                const target = record.target.nodeType === Node.ELEMENT_NODE
+                    ? record.target
+                    : record.target.parentElement;
+                return target?.closest('[data-testid="stChatMessage"]')
+                    || [...record.addedNodes].some((node) =>
+                        node.nodeType === Node.ELEMENT_NODE
+                        && (node.matches('[data-testid="stChatMessage"]')
+                            || node.querySelector('[data-testid="stChatMessage"]'))
+                    );
+            });
+            if (hasMessageChange) scrollToLatest();
+        });
+
+        observer.observe(main, { childList: true, characterData: true, subtree: true });
+        window.docuMindScrollObserver = observer;
+        if (main.querySelector('[data-testid="stChatMessage"]')) scrollToLatest();
+    })();
+    </script>
+    """,
+    unsafe_allow_javascript=True,
 )
+
+top_k = st.session_state.chat_bar_memory_depth
+temperature = st.session_state.chat_bar_creativity
+engine = st.session_state.engine
+if engine is not None:
+    engine.cfg.top_k = top_k
+    engine.cfg.temperature = temperature
 
 user_text = None
 attached_file = None
 
-if chat_submission is not None:
-    if isinstance(chat_submission, str):
-        user_text = chat_submission
-    else:
-        user_text = chat_submission.text
-        if hasattr(chat_submission, "files") and chat_submission.files:
-            attached_file = chat_submission.files[0]
+if st.session_state.pop("chat_submission_pending", False):
+    user_text = st.session_state.pop("submitted_chat_text", "")
+    attached_file = st.session_state.pop("submitted_chat_file", None)
 
 # Handle button-clicked quick prompts
 if not user_text and st.session_state.pending:
@@ -335,7 +418,7 @@ st.session_state.pending = None
 # If user attached a PDF via the paperclip button, index it immediately
 if attached_file is not None:
     file_bytes = attached_file.getvalue()
-    doc_sig = (attached_file.name, len(file_bytes), model, top_k, temperature)
+    doc_sig = (attached_file.name, len(file_bytes))
 
     if st.session_state.doc_sig != doc_sig:
         with st.spinner(f"⚡ Ingesting & indexing **{attached_file.name}**..."):
@@ -371,6 +454,10 @@ if attached_file is not None:
             except Exception as exc:
                 st.error(f"Failed to process document: {exc}")
 
+    st.session_state.chat_upload_generation += 1
+    if not user_text:
+        st.rerun()
+
 # If user provided a message prompt
 if user_text:
     prompt = user_text.strip()
@@ -391,7 +478,7 @@ if user_text:
         try:
             # Case 1: PDF is attached -> Document-grounded RAG retrieval
             if engine is not None and engine.chunks:
-                chunks  = engine.retrieve(prompt)
+                chunks  = engine.retrieve(prompt, top_k=top_k)
                 answer  = st.write_stream(engine.answer_stream(prompt, chunks, history))
                 sources = pages_label(chunks)
                 passages = [
