@@ -423,6 +423,23 @@ html, body, [class*="css"], [data-testid="stMarkdownContainer"] {
     margin: 1.4rem 0 0.5rem;
 }
 
+/* ─── Chat History Sidebar Items ─── */
+.new-chat-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    margin-bottom: 0.8rem;
+    border-radius: 12px;
+}
+
+.history-item-active {
+    background: rgba(99, 102, 241, 0.2) !important;
+    border-color: rgba(99, 102, 241, 0.5) !important;
+    color: #e0e7ff !important;
+}
+
 @media (max-width: 768px) {
     .feature-cards {
         grid-template-columns: 1fr;
