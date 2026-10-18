@@ -15,7 +15,7 @@ class Config:
     api_key: str
 
     # Gemini Models
-    chat_model: str = "gemini-2.5-flash"
+    chat_model: str = "gemini-3.8-flash"
 
     # Chunking
     chunk_size: int = 1200

@@ -43,7 +43,7 @@ EXAMPLE_QUESTIONS = [
     ("⚠️ Risks & Challenges", "What potential risks, limitations, or challenges are highlighted?"),
 ]
 
-CHAT_MODEL = "gemini-2.5-flash"
+CHAT_MODEL = "gemini-3.8-flash"
 
 import chat_history
 
