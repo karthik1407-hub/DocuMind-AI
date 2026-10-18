@@ -41,7 +41,7 @@ Create a `.env` file in the project root:
 ```env
 GEMINI_API_KEY=your-gemini-api-key-here
 ```
-*(Optional: you can also set `PDFQA_CHAT_MODEL=gemini-2.5-flash`)*
+*(Optional: you can also set `PDFQA_CHAT_MODEL=gemini-3.8-flash`)*
 
 ---
 
@@ -63,7 +63,7 @@ Open **`http://localhost:8501`** in your browser.
 
 ```powershell
 python main.py path/to/document.pdf
-python main.py document.pdf --top-k 8 --model gemini-2.5-flash
+python main.py document.pdf --top-k 8 --model gemini-3.8-flash
 ```
 
 Slash commands available in the terminal:
@@ -109,7 +109,7 @@ Query ──► Vectorize ──► Cosine Top-K ──► Grounded Excerpts ─
 
 ## 🔧 Supported Models
 
-- `gemini-2.5-flash` *(Fast, highly capable, and used by the web UI)*
+- `gemini-3.8-flash` *(Fast, highly capable, and used by the web UI)*
 
 ---
 
