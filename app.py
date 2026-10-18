@@ -50,6 +50,8 @@ MODELS = [
 ]
 
 
+import chat_history
+
 # ─── Helpers ───────────────────────────────────────────────────────────────────
 
 def load_css() -> None:
@@ -61,7 +63,8 @@ def load_css() -> None:
         )
 
 
-def reset_chat() -> None:
+def start_new_chat() -> None:
+    st.session_state.current_session_id = chat_history.create_new_session_id()
     st.session_state.messages = []
     st.session_state.pending  = None
     st.session_state.engine   = None
@@ -69,10 +72,31 @@ def reset_chat() -> None:
     st.session_state.uploaded_doc_name = None
 
 
+def switch_chat(session_id: str) -> None:
+    data = chat_history.load_session(session_id)
+    if data:
+        st.session_state.current_session_id = session_id
+        st.session_state.messages = data.get("messages", [])
+        st.session_state.uploaded_doc_name = data.get("doc_name")
+        st.session_state.pending  = None
+        st.session_state.engine   = None
+        st.session_state.doc_sig  = None
+
+
+def remove_chat(session_id: str) -> None:
+    chat_history.delete_session(session_id)
+    if st.session_state.get("current_session_id") == session_id:
+        start_new_chat()
+
+
 def get_api_key() -> str:
     key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if key:
         return key.strip()
+
+    # Streamlit secrets check (for Streamlit Community Cloud)
+    if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+        return str(st.secrets["GEMINI_API_KEY"]).strip()
 
     for fname in [".env", ".env.local"]:
         p = Path(__file__).parent / fname
@@ -87,6 +111,7 @@ def get_api_key() -> str:
 
 
 # ─── Initialise session state ──────────────────────────────────────────────────
+st.session_state.setdefault("current_session_id", chat_history.create_new_session_id())
 st.session_state.setdefault("messages", [])
 st.session_state.setdefault("pending",  None)
 st.session_state.setdefault("engine",   None)
@@ -110,6 +135,35 @@ with st.sidebar:
         """,
         unsafe_allow_html=True,
     )
+
+    # New chat button
+    if st.button("➕ New Conversation", use_container_width=True):
+        start_new_chat()
+        st.rerun()
+
+    # Saved Chat History
+    st.markdown('<div class="sidebar-sec-title">Recent Chats</div>', unsafe_allow_html=True)
+    saved_sessions = chat_history.list_sessions()
+    if saved_sessions:
+        for s in saved_sessions[:10]:
+            is_active = s["id"] == st.session_state.current_session_id
+            col1, col2 = st.columns([0.84, 0.16])
+            with col1:
+                btn_label = f"{'💬 ' if not is_active else '👉 '}{s['title']}"
+                if st.button(
+                    btn_label,
+                    key=f"sess_{s['id']}",
+                    use_container_width=True,
+                    disabled=is_active,
+                ):
+                    switch_chat(s["id"])
+                    st.rerun()
+            with col2:
+                if st.button("✕", key=f"del_{s['id']}", help="Delete chat", use_container_width=True):
+                    remove_chat(s["id"])
+                    st.rerun()
+    else:
+        st.caption("No saved conversations yet.")
 
     st.markdown('<div class="sidebar-sec-title">Agent Configuration</div>', unsafe_allow_html=True)
     model = st.selectbox("Reasoning Engine", MODELS, index=0)
@@ -136,7 +190,7 @@ with st.sidebar:
             file_name="documind_chat.txt",
             use_container_width=True,
         )
-        st.button("Clear Conversation", on_click=reset_chat, use_container_width=True)
+        st.button("Clear Conversation", on_click=start_new_chat, use_container_width=True)
 
     st.markdown(
         """
@@ -308,6 +362,11 @@ if attached_file is not None:
                         ),
                     }
                 )
+                chat_history.save_session(
+                    session_id=st.session_state.current_session_id,
+                    messages=st.session_state.messages,
+                    doc_name=attached_file.name,
+                )
                 st.toast(f"Attached {attached_file.name}!", icon="📄")
             except Exception as exc:
                 st.error(f"Failed to process document: {exc}")
@@ -398,5 +457,10 @@ if user_text:
             "sources":  sources,
             "passages": passages,
         }
+    )
+    chat_history.save_session(
+        session_id=st.session_state.current_session_id,
+        messages=st.session_state.messages,
+        doc_name=st.session_state.uploaded_doc_name,
     )
     st.rerun()

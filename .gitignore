@@ -432,3 +432,4 @@ FodyWeavers.xsd
 .pdfqa_cache/
 .venv/
 *.local
+.chats/
