@@ -1,0 +1,7 @@
+google-genai>=0.1.0
+pypdfium2>=5.0.0
+numpy>=1.26.0
+python-dotenv>=1.0.0
+truststore>=0.10.0
+streamlit>=1.40.0
+rich>=13.0.0
