@@ -18,11 +18,37 @@ html, body, [class*="css"], [data-testid="stMarkdownContainer"] {
                 #090d16 !important;
 }
 
-/* ── Hide Streamlit Chrome ── */
+/* ── Streamlit Header & Sidebar Toggle ── */
 #MainMenu, footer { visibility: hidden; }
-[data-testid="stToolbar"] { display: none !important; }
+[data-testid="stToolbar"] {
+    display: block !important;
+    visibility: visible !important;
+}
 [data-testid="stDecoration"] { display: none !important; }
-[data-testid="stHeader"] { background: transparent !important; }
+
+header[data-testid="stHeader"] {
+    background: transparent !important;
+    display: block !important;
+}
+
+[data-testid="stExpandSidebarButton"] {
+    position: fixed !important;
+    top: 0.5rem !important;
+    left: 0.5rem !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 100000000 !important;
+    color: #e2e8f0 !important;
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1px solid rgba(99, 102, 241, 0.45) !important;
+    border-radius: 0.75rem !important;
+    cursor: pointer !important;
+}
 
 .block-container {
     padding-top: 1.2rem !important;
@@ -348,34 +374,110 @@ html, body, [class*="css"], [data-testid="stMarkdownContainer"] {
     box-shadow: 0 6px 18px -4px rgba(99, 102, 241, 0.3) !important;
 }
 
-/* ══════════════════════════════════════════════════════
-   STREAMLIT CHAT INPUT WITH FILE ATTACHMENT PIN
-══════════════════════════════════════════════════════ */
-[data-testid="stChatInput"] {
-    border-radius: 20px !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+/* Keep upload, text, settings, and send controls in one chat composer. */
+.st-key-chat_composer {
+    position: fixed !important;
+    bottom: 1.2rem !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(950px, calc(100vw - 2rem)) !important;
+    z-index: 999999 !important;
 }
 
-[data-testid="stChatInput"] > div {
+@media (min-width: 769px) {
+    body:has([data-testid="stSidebar"][data-collapsed="false"]) .st-key-chat_composer {
+        left: calc(50% + 150px) !important;
+    }
+}
+
+.st-key-chat_composer [data-testid="stForm"] {
     background: rgba(15, 23, 42, 0.95) !important;
     border: 1px solid rgba(99, 102, 241, 0.35) !important;
-    border-radius: 20px !important;
+    border-radius: 28px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    padding: 0.55rem 0.85rem !important;
 }
 
-[data-testid="stChatInput"] textarea {
+.st-key-chat_composer [data-testid="stHorizontalBlock"] {
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 0.35rem !important;
+}
+
+.st-key-chat_composer [data-testid="stColumn"] {
+    min-width: 0 !important;
+    padding: 0 !important;
+}
+
+.st-key-chat_composer [data-testid="stTextInput"] input {
     background: transparent !important;
     color: #f8fafc !important;
     font-size: 0.95rem !important;
-    padding: 0.8rem 1.1rem !important;
-}
-
-[data-testid="stChatInput"] textarea:focus {
+    border: none !important;
     box-shadow: none !important;
+    min-height: 42px !important;
 }
 
-[data-testid="stChatInput"]:focus-within > div {
-    border-color: #6366f1 !important;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
+.st-key-chat_composer [data-testid="stTextInput"] input:focus {
+    outline: none !important;
+}
+
+.st-key-chat_composer [data-testid="stFileUploader"] section {
+    min-height: 42px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+.st-key-chat_composer [data-testid="stFileUploaderDropzoneInstructions"],
+.st-key-chat_composer [data-testid="stFileUploader"] small {
+    display: none !important;
+}
+
+.st-key-chat_composer [data-testid="stFileUploader"] button {
+    width: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    color: #cbd5e1 !important;
+    font-size: 0 !important;
+}
+
+.st-key-chat_composer [data-testid="stFileUploader"] button > * {
+    display: none !important;
+}
+
+.st-key-chat_composer [data-testid="stFileUploader"] button::before {
+    content: "＋";
+    font-size: 1.25rem !important;
+}
+
+.st-key-chat_composer [data-testid="stPopover"] {
+    width: 100% !important;
+}
+
+.st-key-chat_composer button[data-testid="stPopoverButton"] {
+    width: 100% !important;
+    min-height: 40px !important;
+    justify-content: center !important;
+    border-radius: 9999px !important;
+    background: transparent !important;
+    border: 0 !important;
+    color: #cbd5e1 !important;
+}
+
+.st-key-chat_composer [data-testid="stFormSubmitButton"] button {
+    min-height: 40px !important;
+    width: 40px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    border-radius: 12px !important;
+    background: rgba(99, 102, 241, 0.2) !important;
+    border: 1px solid rgba(99, 102, 241, 0.35) !important;
+    color: #e0e7ff !important;
+    font-size: 1.1rem !important;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -421,17 +523,6 @@ html, body, [class*="css"], [data-testid="stMarkdownContainer"] {
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin: 1.4rem 0 0.5rem;
-}
-
-/* ─── Chat History Sidebar Items ─── */
-.new-chat-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    width: 100%;
-    margin-bottom: 0.8rem;
-    border-radius: 12px;
 }
 
 .history-item-active {
